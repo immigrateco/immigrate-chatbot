@@ -23,7 +23,7 @@ window.sendMessage = async function () {
   const input = document.getElementById('userInput').value
   addMessage('🧑', input)
 
-  const res = await fetch('https://YOUR-FLOWISE-URL/api/v1/prediction/YOUR-FLOW-ID', {
+  const res = await fetch('https://cloud.flowiseai.com/api/v1/prediction/2dc876c0-402a-4d8b-a11f-1d647ad6f6f2', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question: input, user_id: user?.id }),
