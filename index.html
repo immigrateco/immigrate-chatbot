@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Immigration Chatbot</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Welcome to the Immigration Assistant</h1>
+
+  <div id="auth">
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">Log In</button>
+  </div>
+
+  <div id="chat" style="display:none;">
+    <div id="messages"></div>
+    <input id="userInput" placeholder="Ask your question..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
