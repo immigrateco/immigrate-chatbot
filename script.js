@@ -8,10 +8,16 @@ window.login = async function () {
   const email = document.getElementById('email').value
   const password = document.getElementById('password').value
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+  let { data, error } = await supabase.auth.signInWithPassword({ email, password })
+
   if (error) {
-    alert('Login failed: ' + error.message)
-    return
+    // Try signing up if login fails
+    const signup = await supabase.auth.signUp({ email, password })
+    if (signup.error) {
+      alert('Login/signup failed: ' + signup.error.message)
+      return
+    }
+    data = signup.data
   }
 
   user = data.user
