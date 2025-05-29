@@ -26,7 +26,7 @@ window.sendMessage = async function () {
   const res = await fetch('https://cloud.flowiseai.com/api/v1/prediction/2dc876c0-402a-4d8b-a11f-1d647ad6f6f2', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question: input, user_id: user?.id }),
+    body: JSON.stringify({ question: input, user_id: user?.id })
   })
   const data = await res.json()
   addMessage('🤖', data.text)
