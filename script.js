@@ -1,8 +1,10 @@
 
+// ✅ Generate and persist sessionId
 if (!localStorage.getItem('sessionId')) {
   localStorage.setItem('sessionId', crypto.randomUUID());
 }
 const sessionId = localStorage.getItem('sessionId');
+console.log("🌐 Initialized sessionId:", sessionId);
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
@@ -27,6 +29,7 @@ window.login = async function () {
   }
 
   user = data.user
+  console.log("✅ Logged in user:", user?.id);
   document.getElementById('auth').style.display = 'none'
   document.getElementById('chat').style.display = 'block'
 }
@@ -35,12 +38,18 @@ window.sendMessage = async function () {
   const input = document.getElementById('userInput').value
   addMessage('🧑', input)
 
+  console.log("🛫 Sending message to Flowise...");
+  console.log("👉 sessionId:", sessionId);
+  console.log("👉 userInput:", input);
+
   const res = await fetch(`https://cloud.flowiseai.com/api/v1/prediction/2dc876c0-402a-4d8b-a11f-1d647ad6f6f2?sessionId=${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question: input, user_id: user?.id })
   })
+
   const data = await res.json()
+  console.log("🧠 Flowise response:", data.text);
   addMessage('🤖', data.text)
 
   await supabase.from('chat_logs').insert([
