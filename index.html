@@ -9,7 +9,7 @@
 <body>
   <main class="container">
     <section id="auth-section">
-      <h2>Welcome to ImmigrateAI</h2>
+      <h2>Welcome to Immigrate.co</h2>
       <div id="auth-forms">
         <form id="signup-form">
           <h3>Create Account</h3>
@@ -29,6 +29,7 @@
     <section id="profile-section" style="display: none">
       <h2>Set Up Your Immigration Profile</h2>
       <form id="profile-form">
+        <input type="text" id="full_name" placeholder="Full Name" required />
         <input type="number" id="age" placeholder="Age" required />
         <input type="text" id="nationality" placeholder="Nationality" required />
         <input type="text" id="residence" placeholder="Country of Residence" required />
@@ -50,7 +51,7 @@
     </section>
   </main>
 
-  <!-- ✅ Script moved here -->
+  <!-- ✅ Keep script at bottom -->
   <script type="module" src="script.js"></script>
 </body>
 </html>
