@@ -10,8 +10,9 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const supabase = createClient('https://aivqfbuaagtwpspbwmec.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdnFmYnVhYWd0d3BzcGJ3bWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzEyODAsImV4cCI6MjA2Mzk0NzI4MH0.hebC2ZU5h6DjHDPNWeGSCY7Xabxp-3-YwoLTPNoinsw')
 
 let currentUser = null;
+let accessToken = null;
 
-// 🔐 AUTH HANDLING
+// 📌 DOM Elements
 const signupForm = document.getElementById('signup-form');
 const loginForm = document.getElementById('login-form');
 const profileForm = document.getElementById('profile-form');
@@ -27,12 +28,22 @@ signupForm.onsubmit = async (e) => {
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) return alert('Signup failed: ' + error.message);
 
-  // Create corresponding user profile in users table
-  const { user } = data;
-  currentUser = user;
+  const { session } = data;
+  accessToken = session?.access_token;
+  currentUser = session?.user;
+
   await supabase.from('users').insert([
-    { auth_id: user.id, email: email, created_at: new Date().toISOString() }
-  ]);
+    {
+      auth_id: currentUser.id,
+      email: email,
+      created_at: new Date().toISOString()
+    }
+  ], {
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
+
   showSection('profile');
 };
 
@@ -44,7 +55,10 @@ loginForm.onsubmit = async (e) => {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return alert('Login failed: ' + error.message);
 
+  const sessionData = await supabase.auth.getSession();
+  accessToken = sessionData.data.session?.access_token;
   currentUser = data.user;
+
   showSection('profile');
 };
 
@@ -59,7 +73,7 @@ profileForm.onsubmit = async (e) => {
   e.preventDefault();
 
   const updates = {
-    full_name: document.getElementById('full_name').value,
+    full_name: document.getElementById('full_name')?.value || '',
     country_of_origin: document.getElementById('nationality').value,
     country_of_residence: document.getElementById('residence').value
   };
@@ -67,7 +81,8 @@ profileForm.onsubmit = async (e) => {
   await supabase
     .from('users')
     .update(updates)
-    .eq('auth_id', currentUser.id);
+    .eq('auth_id', currentUser.id)
+    .select();
 
   showSection('chat');
 };
