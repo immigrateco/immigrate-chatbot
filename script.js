@@ -5,14 +5,12 @@ if (!localStorage.getItem('sessionId')) {
 const sessionId = localStorage.getItem('sessionId');
 console.log("🌐 Initialized sessionId:", sessionId);
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-const supabase = createClient(
-  'https://aivqfbuaagtwpspbwmec.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdnFmYnVhYWd0d3BzcGJ3bWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzEyODAsImV4cCI6MjA2Mzk0NzI4MH0.hebC2ZU5h6DjHDPNWeGSCY7Xabxp-3-YwoLTPNoinsw'
-);
+const supabase = createClient('https://aivqfbuaagtwpspbwmec.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdnFmYnVhYWd0d3BzcGJ3bWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzEyODAsImV4cCI6MjA2Mzk0NzI4MH0.hebC2ZU5h6DjHDPNWeGSCY7Xabxp-3-YwoLTPNoinsw')
 
 let currentUser = null;
+let currentUserProfile = null;
 
 // 🔐 AUTH HANDLING
 const signupForm = document.getElementById('signup-form');
@@ -21,52 +19,20 @@ const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
 const chatWindow = document.getElementById('chat-window');
 
-const conversationalFields = [
-  { id: 'age', question: "How old are you?" },
-  { id: 'nationality', question: "What is your nationality or nationalities?" },
-  { id: 'residence', question: "Which country do you currently reside in?" },
-  { id: 'education', question: "What is your highest level of education?" },
-  { id: 'language', question: "How would you describe your English proficiency? Include any test scores if applicable." },
-  { id: 'experience', question: "Tell me about your work experience — your job title, number of years, and a short description." },
-  { id: 'family', question: "Can you briefly describe your family status? For example: married with 2 kids." }
-];
-
-let profileData = {};
-let profileIndex = 0;
-
-function askNextProfileQuestion() {
-  if (profileIndex < conversationalFields.length) {
-    const question = conversationalFields[profileIndex].question;
-    addMessage('🤖', question);
-  } else {
-    saveProfile();
-  }
-}
-
-async function saveProfile() {
-  const updates = {
-    auth_id: currentUser.id,
-    age: profileData.age,
-    country_of_origin: profileData.nationality,
-    country_of_residence: profileData.residence,
-    education: profileData.education,
-    language: profileData.language,
-    work_experience: profileData.experience,
-    family_details: profileData.family,
-    created_at: new Date().toISOString()
-  };
-
-  await supabase.from('users').insert([updates]);
-  showSection('chat');
-  addMessage('🤖', "Thanks for providing your information. Shall I go ahead and look at what immigration options you may be eligible for, based on the profile information you just entered?");
-}
-
-function showSection(sectionName) {
+// Show and hide sections
+function showSection(name) {
   document.getElementById('auth-section').style.display = 'none';
-  document.getElementById('chat-section').style.display = sectionName === 'chat' ? 'block' : 'none';
+  document.getElementById('chat-section').style.display = name === 'chat' ? 'block' : 'none';
 }
 
-// ✅ Sign Up
+// Fetch and verify profile
+async function fetchUserProfile(authId) {
+  const { data, error } = await supabase.from('users').select('*').eq('auth_id', authId).single();
+  if (error) return null;
+  return data;
+}
+
+// Signup
 signupForm.onsubmit = async (e) => {
   e.preventDefault();
   const email = document.getElementById('signup-email').value;
@@ -75,15 +41,17 @@ signupForm.onsubmit = async (e) => {
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) return alert('Signup failed: ' + error.message);
 
-  currentUser = data.user;
-  addMessage('🤖', "Welcome! Let's set up your profile.");
+  const user = data.user;
+  currentUser = user;
+
+  // Insert user into users table
+  await supabase.from('users').insert([{ auth_id: user.id, email }]);
+
+  startChatWithGreeting();
   showSection('chat');
-  profileIndex = 0;
-  profileData = {};
-  askNextProfileQuestion();
 };
 
-// ✅ Log In
+// Login
 loginForm.onsubmit = async (e) => {
   e.preventDefault();
   const email = document.getElementById('login-email').value;
@@ -94,58 +62,49 @@ loginForm.onsubmit = async (e) => {
 
   currentUser = data.user;
 
-  const { data: users } = await supabase.from('users').select('*').eq('auth_id', currentUser.id);
-  if (users.length > 0) {
-    showSection('chat');
-    addMessage('🤖', "Welcome back! Ready to explore your immigration options?");
-  } else {
-    addMessage('🤖', "Welcome! Let's set up your profile.");
-    showSection('chat');
-    profileIndex = 0;
-    profileData = {};
-    askNextProfileQuestion();
-  }
-};
-
-// 💬 Chat Form Handler
-chatForm.onsubmit = async (e) => {
-  e.preventDefault();
-  const userMessage = chatInput.value.trim();
-  if (!userMessage) return;
-
-  addMessage('🧑', userMessage);
-  chatInput.value = '';
-
-  // If collecting profile:
-  if (profileIndex < conversationalFields.length) {
-    const fieldId = conversationalFields[profileIndex].id;
-    profileData[fieldId] = userMessage;
-    profileIndex++;
-    askNextProfileQuestion();
+  const profile = await fetchUserProfile(currentUser.id);
+  if (!profile) {
+    alert('No profile found for this user.');
     return;
   }
 
-  // If normal message:
-  const res = await fetch(`https://cloud.flowiseai.com/api/v1/prediction/2dc876c0-402a-4d8b-a11f-1d647ad6f6f2?sessionId=${sessionId}`, {
+  currentUserProfile = profile;
+  showSection('chat');
+  startChatWithGreeting();
+};
+
+// 🎯 Inject greeting when chat starts
+function startChatWithGreeting() {
+  const greeting = "Thanks for providing your information. Shall I go ahead and look at what immigration options you may be eligible for, based on the profile information you just entered?";
+  addMessage('🤖', greeting);
+}
+
+// 💬 CHAT HANDLER
+chatForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const userMessage = chatInput.value;
+  addMessage('🧑', userMessage);
+  chatInput.value = '';
+
+  const response = await fetch(`https://cloud.flowiseai.com/api/v1/prediction/2dc876c0-402a-4d8b-a11f-1d647ad6f6f2?sessionId=${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question: userMessage, user_id: currentUser?.id })
+    body: JSON.stringify({
+      question: userMessage,
+      user_id: currentUser?.id,
+      profile: currentUserProfile // include profile data to avoid duplicate questions
+    })
   });
 
-  const data = await res.json();
-  const botReply = data.text || '[No response]';
-  addMessage('🤖', botReply);
-
-  await supabase.from('chat_logs').insert([
-    { user_id: currentUser.id, session_id: sessionId, message: userMessage, sender: 'user', timestamp: new Date().toISOString() },
-    { user_id: currentUser.id, session_id: sessionId, message: botReply, sender: 'bot', timestamp: new Date().toISOString() }
-  ]);
+  const data = await response.json();
+  const botMessage = data.text || '[No response]';
+  addMessage('🤖', botMessage);
 };
 
 function addMessage(sender, text) {
-  const div = document.createElement('div');
-  div.className = sender;
-  div.textContent = `${sender}: ${text}`;
-  chatWindow.appendChild(div);
+  const msgDiv = document.createElement('div');
+  msgDiv.className = sender;
+  msgDiv.textContent = `${sender}: ${text}`;
+  chatWindow.appendChild(msgDiv);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
