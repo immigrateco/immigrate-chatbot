@@ -3,24 +3,52 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Immigration Chatbot</title>
+  <title>Immigration Advisor Chatbot</title>
   <link rel="stylesheet" href="style.css" />
+  <script defer src="script.js"></script>
 </head>
 <body>
-  <h1>Welcome to the Immigration Assistant</h1>
+  <main class="container">
+    <section id="auth-section">
+      <h2>Welcome to ImmigrateAI</h2>
+      <div id="auth-forms">
+        <form id="signup-form">
+          <h3>Create Account</h3>
+          <input type="email" id="signup-email" placeholder="Email" required />
+          <input type="password" id="signup-password" placeholder="Password" required />
+          <button type="submit">Sign Up</button>
+        </form>
+        <form id="login-form">
+          <h3>Login</h3>
+          <input type="email" id="login-email" placeholder="Email" required />
+          <input type="password" id="login-password" placeholder="Password" required />
+          <button type="submit">Log In</button>
+        </form>
+      </div>
+    </section>
 
-  <div id="auth">
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
-    <button onclick="login()">Log In</button>
-  </div>
+    <section id="profile-section" style="display: none">
+      <h2>Set Up Your Immigration Profile</h2>
+      <form id="profile-form">
+        <input type="number" id="age" placeholder="Age" required />
+        <input type="text" id="nationality" placeholder="Nationality" required />
+        <input type="text" id="residence" placeholder="Country of Residence" required />
+        <input type="text" id="education" placeholder="Education" required />
+        <input type="text" id="language" placeholder="Language Proficiency (e.g., IELTS 7.0)" required />
+        <input type="text" id="experience" placeholder="Work Experience (years and job title)" required />
+        <input type="text" id="family" placeholder="Family Details (e.g., married, 2 children)" required />
+        <button type="submit">Save Profile</button>
+      </form>
+    </section>
 
-  <div id="chat" style="display:none;">
-    <div id="messages"></div>
-    <input id="userInput" placeholder="Ask your question..." />
-    <button onclick="sendMessage()">Send</button>
-  </div>
-
-  <script type="module" src="script.js"></script>
+    <section id="chat-section" style="display: none">
+      <h2>Immigration Chat</h2>
+      <div id="chat-window"></div>
+      <form id="chat-form">
+        <input type="text" id="chat-input" placeholder="Type your message..." required />
+        <button type="submit">Send</button>
+      </form>
+    </section>
+  </main>
 </body>
 </html>
