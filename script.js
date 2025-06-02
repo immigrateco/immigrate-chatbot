@@ -41,6 +41,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return alert('Signup failed: ' + error.message);
 
+    if (!data.session) {
+  alert('✅ You’ve signed up successfully! Please check your email and confirm your address before logging in.');
+  return;
+    }
+
     const { session, user } = data;
     currentUser = user || session?.user;
 
