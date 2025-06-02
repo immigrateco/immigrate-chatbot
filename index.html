@@ -8,6 +8,7 @@
 </head>
 <body>
   <main class="container">
+    <!-- AUTH SECTION -->
     <section id="auth-section">
       <h2>Welcome to ImmigrateAI</h2>
       <div id="auth-forms">
@@ -26,19 +27,20 @@
       </div>
     </section>
 
-<section id="profile-section" style="display: none">
-  <h2>Set Up Your Immigration Profile</h2>
-  <div id="profile-chat"></div> <!-- ✅ Add this line -->
-  <form id="profile-form">
-    <div id="question-box"></div>
-    <input type="text" id="answer-input" placeholder="Type your answer..." required />
-    <button type="submit">Next</button>
-  </form>
-</section>
+    <!-- PROFILE SECTION -->
+    <section id="profile-section" style="display: none">
+      <h2>Set Up Your Immigration Profile</h2>
+      <div id="profile-chat" class="chat-box"></div>
+      <form id="profile-form">
+        <input type="text" id="profile-input" placeholder="Type your answer..." required />
+        <button type="submit">Submit</button>
+      </form>
+    </section>
 
+    <!-- CHAT SECTION -->
     <section id="chat-section" style="display: none">
       <h2>Immigration Chat</h2>
-      <div id="chat-window"></div>
+      <div id="chat-window" class="chat-box"></div>
       <form id="chat-form">
         <input type="text" id="chat-input" placeholder="Type your message..." required />
         <button type="submit">Send</button>
@@ -46,7 +48,7 @@
     </section>
   </main>
 
-  <!-- ✅ Keep script loaded after DOM -->
+  <!-- ✅ Load your JavaScript -->
   <script type="module" src="script.js"></script>
 </body>
 </html>
