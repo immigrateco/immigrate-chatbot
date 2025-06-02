@@ -1,4 +1,3 @@
-
 // ✅ Generate and persist sessionId
 if (!localStorage.getItem('sessionId')) {
   localStorage.setItem('sessionId', crypto.randomUUID());
@@ -10,55 +9,113 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const supabase = createClient('https://aivqfbuaagtwpspbwmec.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdnFmYnVhYWd0d3BzcGJ3bWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzEyODAsImV4cCI6MjA2Mzk0NzI4MH0.hebC2ZU5h6DjHDPNWeGSCY7Xabxp-3-YwoLTPNoinsw')
 
-let user = null
+let currentUser = null;
 
-window.login = async function () {
-  const email = document.getElementById('email').value
-  const password = document.getElementById('password').value
+// 🔐 AUTH HANDLING
+const signupForm = document.getElementById('signup-form');
+const loginForm = document.getElementById('login-form');
+const profileForm = document.getElementById('profile-form');
+const chatForm = document.getElementById('chat-form');
+const chatInput = document.getElementById('chat-input');
+const chatWindow = document.getElementById('chat-window');
 
-  let { data, error } = await supabase.auth.signInWithPassword({ email, password })
+signupForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('signup-email').value;
+  const password = document.getElementById('signup-password').value;
 
-  if (error) {
-    // Try signing up if login fails
-    const signup = await supabase.auth.signUp({ email, password })
-    if (signup.error) {
-      alert('Login/signup failed: ' + signup.error.message)
-      return
-    }
-    data = signup.data
-  }
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) return alert('Signup failed: ' + error.message);
 
-  user = data.user
-  console.log("✅ Logged in user:", user?.id);
-  document.getElementById('auth').style.display = 'none'
-  document.getElementById('chat').style.display = 'block'
+  // Create corresponding user profile in users table
+  const { user } = data;
+  currentUser = user;
+  await supabase.from('users').insert([
+    { auth_id: user.id, email: email, created_at: new Date().toISOString() }
+  ]);
+  showSection('profile');
+};
+
+loginForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return alert('Login failed: ' + error.message);
+
+  currentUser = data.user;
+  showSection('profile');
+};
+
+function showSection(name) {
+  document.getElementById('auth-section').style.display = 'none';
+  document.getElementById('profile-section').style.display = name === 'profile' ? 'block' : 'none';
+  document.getElementById('chat-section').style.display = name === 'chat' ? 'block' : 'none';
 }
 
-window.sendMessage = async function () {
-  const input = document.getElementById('userInput').value
-  addMessage('🧑', input)
+// 🧾 SAVE PROFILE
+profileForm.onsubmit = async (e) => {
+  e.preventDefault();
+
+  const updates = {
+    full_name: document.getElementById('full_name').value,
+    country_of_origin: document.getElementById('nationality').value,
+    country_of_residence: document.getElementById('residence').value
+  };
+
+  await supabase
+    .from('users')
+    .update(updates)
+    .eq('auth_id', currentUser.id);
+
+  showSection('chat');
+};
+
+// 💬 CHAT HANDLER
+chatForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const userMessage = chatInput.value;
+  addMessage('🧑', userMessage);
+  chatInput.value = '';
 
   console.log("🛫 Sending message to Flowise...");
   console.log("👉 sessionId:", sessionId);
-  console.log("👉 userInput:", input);
+  console.log("👉 userInput:", userMessage);
 
-  const res = await fetch(`https://cloud.flowiseai.com/api/v1/prediction/2dc876c0-402a-4d8b-a11f-1d647ad6f6f2?sessionId=${sessionId}`, {
+  const response = await fetch(`https://cloud.flowiseai.com/api/v1/prediction/2dc876c0-402a-4d8b-a11f-1d647ad6f6f2?sessionId=${sessionId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question: input, user_id: user?.id })
-  })
+    body: JSON.stringify({ question: userMessage, user_id: currentUser?.id })
+  });
 
-  const data = await res.json()
-  console.log("🧠 Flowise response:", data.text);
-  addMessage('🤖', data.text)
+  const data = await response.json();
+  const botMessage = data.text || '[No response]';
+  console.log("🧠 Flowise response:", botMessage);
+  addMessage('🤖', botMessage);
 
   await supabase.from('chat_logs').insert([
-    { user_id: user.id, question: input, answer: data.text }
-  ])
-}
+    {
+      user_id: currentUser.id,
+      session_id: sessionId,
+      message: userMessage,
+      sender: 'user',
+      timestamp: new Date().toISOString()
+    },
+    {
+      user_id: currentUser.id,
+      session_id: sessionId,
+      message: botMessage,
+      sender: 'bot',
+      timestamp: new Date().toISOString()
+    }
+  ]);
+};
 
 function addMessage(sender, text) {
-  const msg = document.createElement('div')
-  msg.textContent = `${sender}: ${text}`
-  document.getElementById('messages').appendChild(msg)
+  const msgDiv = document.createElement('div');
+  msgDiv.className = sender;
+  msgDiv.textContent = `${sender}: ${text}`;
+  chatWindow.appendChild(msgDiv);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
 }
