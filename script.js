@@ -76,7 +76,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (error) return alert('Login failed: ' + error.message);
 
     currentUser = data.user;
-    showSection('profile');
+    // 🔍 Check if profile already exists
+const { data: profile, error: profileError } = await supabase
+  .from('users')
+  .select('*')
+  .eq('auth_id', currentUser.id)
+  .single();
+
+if (profile && !profileError) {
+  // ✅ User profile exists, go straight to chat
+  showSection('chat');
+} else {
+  // 🆕 No profile yet, prompt for profile info
+  showSection('profile');
+}
   };
 
   function showSection(name) {
