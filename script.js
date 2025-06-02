@@ -63,7 +63,7 @@ loginForm.onsubmit = async (e) => {
   showSection('chat');
 
   setTimeout(() => {
-    addMessage('🤖', "Thanks for providing your information. Shall I go ahead and look at what immigration options you may be eligible for, based on the profile information you just entered?");
+    addMessage('🤖', "Welcome! Shall I go ahead and look at what immigration options you may be eligible for, based on the profile information you just entered?");
   }, 400);
 };
 
