@@ -43,7 +43,7 @@ document.getElementById('signup-form').onsubmit = async (e) => {
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) return alert('Signup failed: ' + error.message);
 
-  currentUser = data.user;
+  currentUser = data.user ?? data.session?.user;
   showSection('profile');
 };
 
