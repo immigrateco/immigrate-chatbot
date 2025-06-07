@@ -1,4 +1,3 @@
-// Initialize Supabase
 const supabase = window.supabase.createClient(
   'https://aivqfbuaagtwpspbwmec.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdnFmYnVhYWd0d3BzcGJ3bWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzEyODAsImV4cCI6MjA2Mzk0NzI4MH0.hebC2ZU5h6DjHDPNWeGSCY7Xabxp-3-YwoLTPNoinsw'
@@ -25,7 +24,7 @@ window.onload = async () => {
     if (profile) {
       showSection('chat');
       setTimeout(() => {
-        addMessage('🤖', "Welcome back! Shall I go ahead and look at what immigration options you may be eligible for, based on your profile?");
+        addMessage('🤖', "Welcome back! Shall I check your immigration eligibility based on your saved profile?");
       }, 400);
     } else {
       showSection('profile');
@@ -66,7 +65,7 @@ document.getElementById('login-form').onsubmit = async (e) => {
   if (profile) {
     showSection('chat');
     setTimeout(() => {
-      addMessage('🤖', "Welcome back! Shall I go ahead and look at what immigration options you may be eligible for, based on your profile?");
+      addMessage('🤖', "Welcome back! Shall I check your immigration eligibility based on your saved profile?");
     }, 400);
   } else {
     showSection('profile');
@@ -75,29 +74,26 @@ document.getElementById('login-form').onsubmit = async (e) => {
 
 document.getElementById('profile-form').onsubmit = async (e) => {
   e.preventDefault();
-  const jobTitle = document.getElementById('job-title').value;
-  const education = document.getElementById('education').value;
-  const country = document.getElementById('country').value;
+  const formData = {
+    auth_id: currentUser.id,
+    full_name: document.getElementById('full-name').value,
+    country_of_origin: document.getElementById('country-of-origin').value,
+    country_of_residence: document.getElementById('country-of-residence').value,
+    education: document.getElementById('education').value,
+    language: document.getElementById('language').value,
+    job_title: document.getElementById('job-title').value,
+    job_description: document.getElementById('job-description').value,
+    experience: document.getElementById('experience').value,
+    family: document.getElementById('family').value
+  };
 
-  const { error } = await supabase.from('users').insert([
-    {
-      auth_id: currentUser.id,
-      job_title: jobTitle,
-      education,
-      country
-    }
-  ]);
-
-  if (error) {
-    alert("Error saving profile: " + error.message);
-    return;
-  }
+  const { error } = await supabase.from('users').insert([formData]);
+  if (error) return alert("Error saving profile: " + error.message);
 
   alert("✅ Profile saved!");
   showSection('chat');
-
   setTimeout(() => {
-    addMessage('🤖', "Thanks for providing your information. Shall I go ahead and look at what immigration options you may be eligible for?");
+    addMessage('🤖', "Thanks! Shall I look into your immigration eligibility now?");
   }, 400);
 };
 
