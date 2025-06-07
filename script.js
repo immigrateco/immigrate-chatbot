@@ -1,87 +1,129 @@
+// Initialize Supabase
+const supabase = supabase.createClient(
+  'https://aivqfbuaagtwpspbwmec.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdnFmYnVhYWd0d3BzcGJ3bWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzEyODAsImV4cCI6MjA2Mzk0NzI4MH0.hebC2ZU5h6DjHDPNWeGSCY7Xabxp-3-YwoLTPNoinsw'
+);
 
-const supabaseUrl = 'https://aivqfbuaagtwpspbwmec.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdnFmYnVhYWd0d3BzcGJ3bWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzEyODAsImV4cCI6MjA2Mzk0NzI4MH0.hebC2ZU5h6DjHDPNWeGSCY7Xabxp-3-YwoLTPNoinsw';
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+let currentUser = null;
 
-document.addEventListener('DOMContentLoaded', () => {
-  const loginForm = document.getElementById('login-form');
-  const signupForm = document.getElementById('signup-form');
-  const profileForm = document.getElementById('profile-form');
-  const chatInterface = document.getElementById('chat-interface');
+function showSection(name) {
+  document.getElementById('auth-section').style.display = name === 'auth' ? 'block' : 'none';
+  document.getElementById('profile-section').style.display = name === 'profile' ? 'block' : 'none';
+  document.getElementById('chat-section').style.display = name === 'chat' ? 'block' : 'none';
+}
 
-  function show(element) {
-    element.style.display = 'block';
-  }
-
-  function hide(element) {
-    element.style.display = 'none';
-  }
-
-  async function checkProfileAndRedirect(user) {
-    const { data, error } = await supabase
+window.onload = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    currentUser = user;
+    const { data: profile } = await supabase
       .from('users')
       .select('*')
-      .eq('auth_id', user.id);
+      .eq('auth_id', user.id)
+      .single();
 
-    if (error) {
-      console.error('Error checking user profile:', error.message);
-      return;
-    }
-
-    if (data.length === 0) {
-      // No profile exists, show profile form
-      hide(loginForm);
-      hide(signupForm);
-      show(profileForm);
+    if (profile) {
+      showSection('chat');
+      setTimeout(() => {
+        addMessage('🤖', "Welcome back! Shall I go ahead and look at what immigration options you may be eligible for, based on your profile?");
+      }, 400);
     } else {
-      // Profile exists, go to chat
-      hide(loginForm);
-      hide(signupForm);
-      show(chatInterface);
+      showSection('profile');
     }
+  } else {
+    showSection('auth');
+  }
+};
+
+document.getElementById('signup-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('signup-email').value;
+  const password = document.getElementById('signup-password').value;
+
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) return alert('Signup failed: ' + error.message);
+
+  currentUser = data.user ?? data.session?.user;
+  showSection('profile');
+};
+
+document.getElementById('login-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value;
+  const password = document.getElementById('login-password').value;
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return alert('Login failed: ' + error.message);
+
+  currentUser = data.user;
+
+  const { data: profile } = await supabase
+    .from('users')
+    .select('*')
+    .eq('auth_id', currentUser.id)
+    .single();
+
+  if (profile) {
+    showSection('chat');
+    setTimeout(() => {
+      addMessage('🤖', "Welcome back! Shall I go ahead and look at what immigration options you may be eligible for, based on your profile?");
+    }, 400);
+  } else {
+    showSection('profile');
+  }
+};
+
+document.getElementById('profile-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const jobTitle = document.getElementById('job-title').value;
+  const education = document.getElementById('education').value;
+  const country = document.getElementById('country').value;
+
+  const { error } = await supabase.from('users').insert([
+    {
+      auth_id: currentUser.id,
+      job_title: jobTitle,
+      education,
+      country
+    }
+  ]);
+
+  if (error) {
+    alert("Error saving profile: " + error.message);
+    return;
   }
 
-  signupForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('signup-email').value;
-    const password = document.getElementById('signup-password').value;
+  alert("✅ Profile saved!");
+  showSection('chat');
 
-    const { user, error } = await supabase.auth.signUp({ email, password });
+  setTimeout(() => {
+    addMessage('🤖', "Thanks for providing your information. Shall I go ahead and look at what immigration options you may be eligible for?");
+  }, 400);
+};
 
-    if (error) return alert('Signup error: ' + error.message);
-    if (user) await checkProfileAndRedirect(user);
+document.getElementById('chat-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('user-input').value;
+  if (!input.trim()) return;
+
+  addMessage('🧑', input);
+  document.getElementById('user-input').value = '';
+
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: input, userId: currentUser?.id }),
   });
 
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
+  const data = await response.json();
+  addMessage('🤖', data.reply);
+};
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) return alert('Login error: ' + error.message);
-    if (data.user) await checkProfileAndRedirect(data.user);
-  });
-
-  profileForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const user = (await supabase.auth.getUser()).data.user;
-
-    const profile = {
-      auth_id: user.id,
-      job_title: document.getElementById('job-title').value,
-      nationality: document.getElementById('nationality').value,
-      education: document.getElementById('education').value,
-      language_score: document.getElementById('language-score').value,
-      years_experience: document.getElementById('years-experience').value
-    };
-
-    const { error } = await supabase.from('users').insert([profile]);
-
-    if (error) return alert('Profile save error: ' + error.message);
-
-    hide(profileForm);
-    show(chatInterface);
-  });
-});
+function addMessage(sender, text) {
+  const chat = document.getElementById('chat');
+  const message = document.createElement('div');
+  message.classList.add('message');
+  message.innerHTML = `<strong>${sender}:</strong> ${text}`;
+  chat.appendChild(message);
+  chat.scrollTop = chat.scrollHeight;
+}
