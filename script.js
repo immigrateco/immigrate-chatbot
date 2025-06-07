@@ -105,11 +105,14 @@ document.getElementById('chat-form').onsubmit = async (e) => {
   addMessage('🧑', input);
   document.getElementById('user-input').value = '';
 
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: input, userId: currentUser?.id }),
-  });
+const response = await fetch('https://flowiseai.vercel.app/api/v1/prediction/2dc876c0-402a-4d8b-a11f-1d647ad6f6f2', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer urda6WDgqtGWNMKYQn91zxCSBezawWlR_BqLjDDgTYk'
+  },
+  body: JSON.stringify({ question: input, sessionId: currentUser?.id })
+});
 
   const data = await response.json();
   addMessage('🤖', data.reply);
