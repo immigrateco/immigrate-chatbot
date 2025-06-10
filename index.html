@@ -22,7 +22,7 @@
       document.getElementById('reply').innerText = "Checking eligibility...";
 
       // Call your Vercel API route
-      const response = await fetch("/api/check-eligibility.js", {
+      const response = await fetch("/api/check-eligibility", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ job })
