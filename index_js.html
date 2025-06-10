@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>UK Immigration Eligibility Checker</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    #chat { margin-top: 2rem; border: 1px solid #ccc; padding: 1rem; height: 200px; overflow-y: auto; }
+    #reply { margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h2>Check UK Skilled Worker Eligibility</h2>
+  <input id="job-input" placeholder="Enter your job title" style="width: 300px;" />
+  <button onclick="checkEligibility()">Check</button>
+
+  <div id="chat"></div>
+  <div id="reply"></div>
+
+  <script>
+    // ----- YOUR API KEYS -----
+    const SUPABASE_URL = "https://aivqfbuaagtwpspbwmec.supabase.co";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+    const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY";
+    // -------------------------
+
+    async function checkEligibility() {
+      const job = document.getElementById('job-input').value.trim();
+      document.getElementById('chat').innerHTML = `<strong>You:</strong> Can I immigrate as a "${job}"?`;
+      document.getElementById('reply').innerText = "Checking eligibility...";
+
+      // 1. Query Supabase for eligibility
+      const url = `${SUPABASE_URL}/rest/v1/uk_eligibility?or=(job_type.ilike.*${encodeURIComponent(job)}*,related_job_titles.ilike.*${encodeURIComponent(job)}*)&select=eligible_for_skilled_worker`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      });
+      const data = await res.json();
+      let eligibility;
+      if (data.length > 0 && data[0].eligible_for_skilled_worker?.toLowerCase() === "yes") {
+        eligibility = "Yes";
+      } else if (data.length > 0 && data[0].eligible_for_skilled_worker?.toLowerCase() === "no") {
+        eligibility = "No";
+      } else {
+        eligibility = "Not found";
+      }
+
+      // 2. Compose the context for OpenAI
+      const systemPrompt = `
+You are an expert UK immigration advisor bot. 
+The user is interested in immigrating as a "${job}".
+According to the UK Skilled Worker eligibility table, eligible_for_skilled_worker = "${eligibility}" for this job title.
+If eligibility is "Yes", say "You are eligible for the UK Skilled Worker visa."
+If "No", say "Your job is not eligible for the UK Skilled Worker visa."
+If "Not found", say "Sorry, your occupation was not found in the eligibility table."
+Do not explain or add extra advice.
+      `.trim();
+
+      // 3. Call OpenAI Chat API
+      const gptRes = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o", // or "gpt-3.5-turbo"
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Can I immigrate as a "${job}"?` }
+          ],
+          temperature: 0
+        })
+      });
+      const gptJson = await gptRes.json();
+      const reply = gptJson.choices?.[0]?.message?.content ?? "Error from GPT";
+
+      // 4. Show result
+      document.getElementById('reply').innerHTML = `<strong>Bot:</strong> ${reply}`;
+    }
+  </script>
+</body>
+</html>
