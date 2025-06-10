@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -12,72 +13,22 @@
   <h2>Check UK Skilled Worker Eligibility</h2>
   <input id="job-input" placeholder="Enter your job title" style="width: 300px;" />
   <button onclick="checkEligibility()">Check</button>
-
   <div id="chat"></div>
   <div id="reply"></div>
-
   <script>
-    // ----- YOUR API KEYS -----
-    const SUPABASE_URL = "https://aivqfbuaagtwpspbwmec.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpdnFmYnVhYWd0d3BzcGJ3bWVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzEyODAsImV4cCI6MjA2Mzk0NzI4MH0.hebC2ZU5h6DjHDPNWeGSCY7Xabxp-3-YwoLTPNoinsw";
-    const OPENAI_API_KEY = "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";
-    // -------------------------
-
     async function checkEligibility() {
       const job = document.getElementById('job-input').value.trim();
       document.getElementById('chat').innerHTML = `<strong>You:</strong> Can I immigrate as a "${job}"?`;
       document.getElementById('reply').innerText = "Checking eligibility...";
 
-      // 1. Query Supabase for eligibility
-      const url = `${SUPABASE_URL}/rest/v1/uk_eligibility?or=(job_type.ilike.*${encodeURIComponent(job)}*,related_job_titles.ilike.*${encodeURIComponent(job)}*)&select=eligible_for_skilled_worker`;
-      const res = await fetch(url, {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`
-        }
-      });
-      const data = await res.json();
-      let eligibility;
-      if (data.length > 0 && data[0].eligible_for_skilled_worker?.toLowerCase() === "yes") {
-        eligibility = "Yes";
-      } else if (data.length > 0 && data[0].eligible_for_skilled_worker?.toLowerCase() === "no") {
-        eligibility = "No";
-      } else {
-        eligibility = "Not found";
-      }
-
-      // 2. Compose the context for OpenAI
-      const systemPrompt = `
-You are an expert UK immigration advisor bot. 
-The user is interested in immigrating as a "${job}".
-According to the UK Skilled Worker eligibility table, eligible_for_skilled_worker = "${eligibility}" for this job title.
-If eligibility is "Yes", say "You are eligible for the UK Skilled Worker visa."
-If "No", say "Your job is not eligible for the UK Skilled Worker visa."
-If "Not found", say "Sorry, your occupation was not found in the eligibility table."
-Do not explain or add extra advice.
-      `.trim();
-
-      // 3. Call OpenAI Chat API
-      const gptRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      // Call your Vercel API route
+      const response = await fetch("/api/check-eligibility", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo", // or "gpt-3.5-turbo"
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: `Can I immigrate as a "${job}"?` }
-          ],
-          temperature: 0
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job })
       });
-      const gptJson = await gptRes.json();
-      const reply = gptJson.choices?.[0]?.message?.content ?? "Error from GPT";
-
-      // 4. Show result
-      document.getElementById('reply').innerHTML = `<strong>Bot:</strong> ${reply}`;
+      const data = await response.json();
+      document.getElementById('reply').innerHTML = `<strong>Bot:</strong> ${data.reply}`;
     }
   </script>
 </body>
